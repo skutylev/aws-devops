@@ -1,0 +1,55 @@
+ - name: "{{ env }}-{{ server_role }} | Load variables"
+   include_vars: "{{ item }}"
+   with_first_found:
+     - "vars/{{ env }}_{{ server_role }}_settings.yml"
+     - "vars/settings.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Creating elasticache subnet group"
+   elasticache_subnet_group:
+     state: present
+     name: "{{ env }}-redis-subnet-group"
+     description: "{{ env }}-{{ server_role }} elasticache subnet group"
+     subnets: "{{ subnets }}"
+     region: "{{ region }}"
+   when: env is defined and env == "product"
+
+ - name: "{{ env }}-{{ server_role }} | Creating elasticache redis instance | ~8 min, if error than cache exitst, ignoring..."
+   elasticache:
+     name: "{{ env }}-{{ server_role }}-redis"
+     state: present
+     engine: redis
+     node_type: cache.t2.micro
+     num_nodes: 1
+     region: eu-west-1
+     zone: eu-west-1a
+     security_group_ids: "{{ group_id }}"
+     cache_subnet_group: "{{ env }}-redis-subnet-group"
+     hard_modify: false
+     wait: yes
+   register: cache
+   ignore_errors: true
+   when: env is defined and env == "product"
+
+ - name: "{{ env }}-{{ server_role }} | Register CNAME for elasticache in {{ private_domain }}"
+   route53:
+     command: create
+     zone: "{{ private_domain }}"
+     record: "cache.{{ private_domain }}"
+     type: CNAME
+     ttl: 7200
+     value: "{{ cache.elasticache.data.CacheNodes[0].Endpoint.Address }}"
+     overwrite: yes
+     private_zone: true
+   when: "env is defined and env == 'product' and {{ cache.changed }} is defined and {{ cache.changed }} == True"
+
+ - name: "{{ env }}-{{ server_role }} | Adding Elasticache var file"
+   template:
+     src: "vars/templates/settings_infr_elasticache.j2"
+     dest: "vars/fragments/{{ env }}/settings_infr_elasticache.yml"
+   when: env is defined and env == "product"
+
+ - name: "{{ env }}-{{ server_role }} | Assembling config file"
+   assemble:
+     src: "vars/fragments/{{ env }}"
+     dest: "vars/{{ env }}_{{ server_role }}_settings.yml"
+   when: env is defined and env == "product"

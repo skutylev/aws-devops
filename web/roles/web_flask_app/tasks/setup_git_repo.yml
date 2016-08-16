@@ -1,0 +1,24 @@
+ - name: ensure sudo keeps SSH_AUTH_SOCK in environment
+   copy: src=env
+         dest=/etc/sudoers.d/env
+         mode=0440
+         owner=root
+         group=root
+
+ - debug: var=branch
+ - name: Setup the repo
+   become: yes
+   git: repo={{ git_repo }}
+       dest={{ project_path }}
+       version={{ tag }}
+       force=yes
+       accept_hostkey=yes
+   tags: git
+   register: git
+ - debug: var=git
+
+ - name: Delete all .pyc files
+   command: find . -name '*.pyc' -delete
+   args:
+     chdir: "{{ project_path }}"
+   tags: git

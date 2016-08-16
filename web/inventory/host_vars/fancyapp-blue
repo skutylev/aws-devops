@@ -1,0 +1,3 @@
+relative: "{{ env }}-{{ server_role }}-violet"
+asg_group_name: "{{ env }}-{{ server_role }}-blue"
+lc_name: "{{ env }}-{{ server_role }}-{{ lc_suffix }}-lc"

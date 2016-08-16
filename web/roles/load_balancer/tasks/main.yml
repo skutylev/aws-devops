@@ -1,0 +1,76 @@
+ - name: "{{ env }}-{{ server_role }} | Load variables"
+   include_vars: "{{ item }}"
+   with_first_found:
+     - "vars/{{ env }}_{{ server_role }}_settings.yml"
+     - "vars/settings.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Creating load balancer"
+   ec2_elb_lb:
+     name: "{{ env }}-{{ server_role }}-lb"
+     region: "{{ region }}"
+     security_group_ids: "{{ group_id }}"
+     state: present
+     subnets: "{{ subnets }}"
+     connection_draining_timeout: 60
+     listeners:
+       - protocol: http
+         load_balancer_port: 80
+         instance_port: 80
+       - protocol: https
+         load_balancer_port: 443
+         instance_protocol: http
+         instance_port: 80
+         ssl_certificate_id: "{{ ssl_certificate_id }}"
+     health_check:
+         ping_protocol: tcp
+         ping_port: 80
+         response_timeout: 5
+         interval: 30
+         unhealthy_threshold: 2
+         healthy_threshold: 10
+   register: load_balancer
+ - debug: var=load_balancer
+   
+ - name: "{{ env }}-{{ server_role }} | Create DNS A record for ELB"
+   route53:
+     command: create
+     zone: "{{ public_zone_name }}"
+     record: "new.{{ public_zone_name }}"
+     alias: true
+     alias_hosted_zone_id: "{{ load_balancer.elb.hosted_zone_id }}"
+     type: A
+     value: "{{ load_balancer.elb.dns_name }}"
+     overwrite: yes
+   when: env is defined and env == "product"
+
+ - name: "{{ env }}-{{ server_role }} | Create DNS CNAME record for ELB"
+   route53:
+     command: create
+     zone: "{{ public_zone_name }}"
+     record: "new.{{ public_zone_name }}"
+     type: CNAME
+     ttl: 7200
+     value: "{{ load_balancer.elb.dns_name }}"
+     overwrite: yes
+   when: env is defined and env == "test"
+
+ - name: "{{ env }}-{{ server_role }} | Create DNS CNAME record for ELB"
+   route53:
+     command: create
+     zone: "{{ public_domain }}"
+     record: "{{ env }}-{{ server_role }}.{{ public_domain }}"
+     type: CNAME
+     ttl: 7200
+     value: "{{ load_balancer.elb.dns_name }}"
+     overwrite: yes
+   when: env is defined and env == "staging"   
+
+ - name: "{{ env }}-{{ server_role }} | Adding ELB var file"
+   template:
+     src: "vars/templates/settings_infr_load_balancer.j2"
+     dest: "vars/fragments/{{ env }}/settings_infr_load_balancer.yml" 
+
+ - name: "{{ env }}-{{ server_role }} | Assembling config file"
+   assemble:
+     src: "vars/fragments/{{ env }}"
+     dest: "vars/{{ env }}_{{ server_role }}_settings.yml"

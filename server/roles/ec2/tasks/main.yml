@@ -1,0 +1,31 @@
+ - name: "{{ env }}-{{ server_role }} | Load variables"
+   include_vars: "{{ item }}"
+   with_first_found:
+     - "vars/{{ env }}_{{ server_role }}_settings.yml"
+     - "vars/settings.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Creating ec2 instance"
+   ec2:
+     assign_public_ip: yes
+     region: "{{ region }}"
+     key_name: "{{ key_name }}"
+     group_id: "{{ group_id }}"
+     instance_type: t2.small
+     vpc_subnet_id: "{{ subnets.0 }}"
+     image: "{{ base_ami_id }}"
+     wait: yes
+     wait_timeout: 50
+     exact_count: 1
+     count_tag:
+       Name: "{{ env }}-{{ server_role }}-{{ tag }}-temp"
+     instance_tags:
+       Role: "{{ server_role }}"
+       Env: "{{ env }}"
+       Name: "{{ env }}-{{ server_role }}-{{ tag }}-temp"
+   register: ami_instance
+
+ - name: "{{ env }}-{{ server_role }} | Waiting for SSH to start"
+   wait_for: host={{ ami_instance.tagged_instances.0.public_ip }} port=22 delay=30 timeout=360 state=started
+
+ - name: "{{ env }}-{{ server_role }} | Adding host to group"
+   add_host: name={{ ami_instance.tagged_instances.0.public_ip }} groups=just_created

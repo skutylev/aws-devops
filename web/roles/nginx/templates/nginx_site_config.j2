@@ -1,0 +1,87 @@
+upstream wsgi_server {
+	server unix:{{ virtualenv_path }}/run/gunicorn.sock;
+}
+
+server {
+	listen	80;
+	proxy_set_header	Host	 $host;
+	proxy_set_header	X-Real-IP	$remote_addr;
+	proxy_set_header	X-Forwarded-For	$proxy_add_x_forwarded_for;
+	proxy_set_header	X-Forwarded-Host $server_name;
+	proxy_redirect	off;
+	resolver	10.0.0.2;
+	keepalive_timeout	70;
+	server_name_in_redirect	off;
+	charset	utf-8;
+	client_max_body_size	4G;
+	access_log {{ nginx_access_log_file }};
+	error_log {{ nginx_error_log_file }};
+
+	set $var "0";
+	if ($http_x_forwarded_proto ~* 'http') {
+		set $var "1";
+	}
+	if ($http_x_forwarded_proto !~* 'https') {
+		set $var "${var}1";
+	}
+	if ($var = 11) {
+		return 301 https://$host$request_uri;
+	}
+
+	location / {
+		try_files $uri @prerender;
+	}
+
+	location @prerender {
+		set $prerender 0;
+		if ($http_user_agent ~* "baiduspider|twitterbot|facebookexternalhit|rogerbot|linkedinbot|embedly|quora link preview|showyoubot|outbrain|pinterest|slackbot|vkShare|Slack-ImgProxy|Slackbot-LinkExpanding|Site Analyzer|SiteAnalyzerBot|Viber|Whatsapp|Telegram|W3C_Validator") {
+			set $prerender 1;
+		}
+		if ($args ~ "_escaped_fragment_") {
+			set $prerender 1;
+		}
+		if ($http_user_agent ~ "Prerender") {
+			set $prerender 0;
+		}
+		if ($http_user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.81 Safari/537.36"){
+			set $prerender 1;
+		}
+		if ($http_user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.45 Safari/535.19") {
+			set $prerender 1;
+		}
+		if ($http_user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36") {
+                        set $prerender 1;
+                }
+		if ($uri ~ "\.(js|css|xml|less|png|jpg|jpeg|gif|pdf|doc|txt|ico|rss|zip|mp3|rar|exe|wmv|doc|avi|ppt|mpg|mpeg|tif|wav|mov|psd|ai|xls|mp4|m4a|swf|dat|dmg|iso|flv|m4v|torrent|ttf|woff)") {
+			set $prerender 0;
+		}
+		if ($prerender = 1) {
+			set $prerender "prerender.naviaddress.local:3000";
+			rewrite .* /https://$host$request_uri? break;
+			proxy_pass http://$prerender;
+		}
+		if ($prerender = 0) {
+			proxy_pass http://wsgi_server;
+			break;
+		}
+	}
+	
+	location /static/ {
+		alias	{{ nginx_static_dir }};
+	}
+
+	location /sitemaps/
+	{
+		alias   {{ application_path }}/app/sitemaps/;
+	}
+
+	location /robots.txt
+	{
+		alias   {{ application_path }}/app/robots.txt;
+	}
+
+	location /apple-app-site-association {
+		alias   {{ application_path }}/app/apple-app-site-association;
+	}
+}
+

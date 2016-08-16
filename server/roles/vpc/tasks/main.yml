@@ -1,0 +1,39 @@
+ - name: "{{ env }}-{{ server_role }} | Load variables"
+   include_vars: "{{ item }}"
+   with_first_found:
+     - "vars/{{ env }}_{{ server_role }}_settings.yml"
+     - "vars/settings.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Creating VPC"
+   ec2_vpc:
+     state: present
+     cidr_block: 172.22.0.0/16
+     resource_tags: { "Name":"navi-vpc"}
+     subnets:
+       - cidr: 172.22.1.0/24
+         az: eu-west-1a
+         resource_tags: { "Env":"{{ env }}", "Name":"{{ env }}-subnet1" }
+       - cidr: 172.22.2.0/24
+         az: eu-west-1b
+         resource_tags: { "Env":"{{ env }}", "Name":"{{ env }}-subnet2" }
+     internet_gateway: True
+     route_tables:
+       - subnets:
+           - 172.22.1.0/24
+           - 172.22.2.0/24
+         routes:
+           - dest: 0.0.0.0/0
+             gw: igw
+     region: "{{ region }}"
+   register: vpc
+ - debug: var=vpc
+
+ - name: "{{ env }}-{{ server_role }} | Adding VPC id and subnets in var file"
+   template:
+     src: "vars/templates/settings_infr_vpc.j2"
+     dest: "vars/fragments/{{ env }}/settings_infr_vpc.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Assembling config file"
+   assemble:
+     src: "vars/fragments/{{ env }}"
+     dest: "vars/{{ env }}_{{ server_role }}_settings.yml"

@@ -1,0 +1,45 @@
+ - name: "{{ env }}-{{ server_role }} | Load variables"
+   include_vars: "{{ item }}"
+   with_first_found:
+     - "vars/{{ env }}_{{ server_role }}_settings.yml"
+     - "vars/settings.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Creating security group"
+   ec2_group:
+     state: present
+     name: "{{ env }}-{{ server_role }}-sg"
+     description: "allow http, https, ssh - any, prerender, cache - sg"
+     region: "{{ region }}"
+     vpc_id: "{{ vpc_id }}"
+     rules:
+       - proto: tcp
+         from_port: 80
+         to_port: 80
+         cidr_ip: 0.0.0.0/0
+       - proto: tcp
+         from_port: 22
+         to_port: 22
+         cidr_ip: 0.0.0.0/0
+       - proto: tcp
+         from_port: 443
+         to_port: 443
+         cidr_ip: 0.0.0.0/0
+       - proto: tcp
+         from_port: 6379
+         to_port: 6379
+         group_name: "{{ env }}-{{ server_role }}-sg"
+       - proto: tcp
+         from_port: 3000
+         to_port: 3000
+         group_name: "{{ env }}-{{ server_role }}-sg"
+   register: sg
+
+ - name: "{{ env }}-{{ server_role }} | Adding SG id var file"
+   template:
+     src: "vars/templates/settings_infr_sg.j2"
+     dest: "vars/fragments/{{ env }}/settings_infr_sg.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Assembling config file"
+   assemble:
+     src: "vars/fragments/{{ env }}"
+     dest: "vars/{{ env }}_{{ server_role }}_settings.yml"

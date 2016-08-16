@@ -1,0 +1,22 @@
+ - hosts: aws
+   vars_files:
+    - env_vars/base.yml
+   roles:
+    - ec2
+
+ - hosts: just_created
+   remote_user: ubuntu
+   become: yes
+   vars_files:
+    - env_vars/base.yml
+    - env_vars/main.yml
+   roles:
+    - common
+    - nginx
+    - flask_app
+
+ - hosts: aws
+   vars_files:
+    - env_vars/base.yml
+   roles:
+    - build_ami

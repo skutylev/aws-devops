@@ -1,0 +1,15 @@
+ - name: Creating app configuration file
+   template: src=files/product_config.j2 dest={{ project_path }}/config.py
+   when: env is defined and env == "product"
+
+ - name: Creating app configuration file
+   template: src=files/staging_config.j2 dest={{ project_path }}/config.py
+   when: env == "staging" and branch != "navi_chain"
+
+ - name: Creating app configuration file
+   template: src=files/chain_config.j2 dest={{ project_path }}/config.py
+   when: env == "staging" and branch == "navi_chain"
+   
+ - name: Restarting app
+   supervisorctl: name={{ application_name }} state=restarted
+   ignore_errors: yes

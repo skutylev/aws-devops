@@ -1,0 +1,2 @@
+- name: Start supervisord service
+  service: name=supervisor state=running

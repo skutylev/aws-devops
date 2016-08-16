@@ -1,0 +1,19 @@
+- name: Ensure that the application file permissions are set properly
+  file: path={{ virtualenv_path }} recurse=yes owner={{ gunicorn_user }} group={{ gunicorn_group }} state=directory
+
+#- name: Some magic
+#  shell: echo "Some magic"
+#  notify:
+#    - reread_config
+#    - update_supervisor
+#    - restart_app
+#    - restart_supervisord
+
+
+
+
+
+
+
+
+

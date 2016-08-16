@@ -1,0 +1,21 @@
+# -*- coding: utf-8 -*-
+DEBUG = True
+SQLALCHEMY_BINDS = {
+    'geo':    'postgresql://navi:q0Qu8FH0Jq@52.30.242.181/navi_geo',
+    'main':   'postgresql://navi:q0Qu8FH0Jq@52.30.242.181/navi',
+}
+SQLALCHEMY_POOL_RECYCLE  = 3600
+DATABASE_CONNECT_OPTIONS = {}
+
+BRAINTREE_MERCHANT_ID = None
+BRAINTREE_PUBLIC_KEY = None
+BRAINTREE_PRIVATE_KEY = None
+
+# US dollar
+NAVI_PIN_4_COST = 100
+NAVI_PIN_5_COST = 10
+
+DEVINOTEL_LOGIN = 'naviworld'
+DEVINOTEL_PASSWORD = 'nAvi:2015'
+DEVINOTEL_FROM = 'Navi'
+DEVINOTEL_MESSAGE = 'Your actiovation code is {}'

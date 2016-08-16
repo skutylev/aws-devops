@@ -1,0 +1,11 @@
+- hosts: aws
+  vars_files:
+    - env_vars/base.yml
+  roles:
+    - find_ami
+    - key_pairs
+#    - vpc
+    - security_group
+    - route53
+    - elasticache
+    - load_balancer

@@ -1,0 +1,29 @@
+- name: "Create sitemap dir"
+  file:
+    path: "{{ virtualenv_path }}/{{ project_name }}/app/sitemaps"
+    owner: "{{ gunicorn_user }}"
+    group: "{{ gunicorn_group }}"
+    mode: 0755
+    state: directory
+  when: env is defined and env == "product"
+
+- name: "Download sitemap_index"
+  get_url:
+    url: "https://s3-eu-west-1.amazonaws.com/sitemaps-bucket/sitemap_index.xml"
+    dest: "{{ virtualenv_path }}/{{ project_name }}/app/sitemaps"
+    mode: 0644
+  when: env is defined and env == "product"
+
+- name: "Download sitemap 1"
+  get_url:
+    url: "https://s3-eu-west-1.amazonaws.com/sitemaps-bucket/sitemap1.xml.gz"
+    dest: "{{ virtualenv_path }}/{{ project_name }}/app/sitemaps"
+    mode: 0644
+  when: env is defined and env == "product"
+
+- name: "Download sitemap 2"
+  get_url:
+    url: "https://s3-eu-west-1.amazonaws.com/sitemaps-bucket/sitemap2.xml.gz"
+    dest: "{{ virtualenv_path }}/{{ project_name }}/app/sitemaps"
+    mode: 0644
+  when: env is defined and env == "product"

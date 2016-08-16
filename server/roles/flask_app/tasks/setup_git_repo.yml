@@ -1,0 +1,27 @@
+ - name: "{{ env }}-{{ server_role }} | Load variables"
+   include_vars: "{{ item }}"
+   with_first_found:
+     - "vars/{{ env }}_{{ server_role }}_settings.yml"
+     - "vars/settings.yml"
+
+ - name: ensure sudo keeps SSH_AUTH_SOCK in environment
+   copy: src=env
+         dest=/etc/sudoers.d/env
+         mode=0440
+         owner=root
+         group=root
+
+ - name: Setup the repo
+   become: yes
+   git: repo={{ git_repo }}
+       dest={{ project_path }}
+       version={{ tag }}
+       force=yes
+       accept_hostkey=yes
+   tags: git
+
+ - name: Delete all .pyc files
+   command: find . -name '*.pyc' -delete
+   args:
+     chdir: "{{ project_path }}"
+   tags: git

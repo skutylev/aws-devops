@@ -1,0 +1,31 @@
+ - name: "{{ env }}-{{ server_role }} | Load variables"
+   include_vars: "{{ item }}"
+   with_first_found:
+     - "vars/{{ env }}_{{ server_role }}_settings.yml"
+     - "vars/settings.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Building App AMI Image"
+   ec2_ami:
+     instance_id: "{{ ami_instance.tagged_instances.0.id }}"
+     region: "{{ region }}"
+     state: present
+     description: This was provisioned {{ ansible_date_time.iso8601 }}
+     name: "{{ env }}-{{ server_role }}-ami-{{ ansible_date_time.epoch }}"
+     wait: yes
+   register: amioutput
+
+ - name: "{{ env }}-{{ server_role }} | Terminating temporary EC2 instance"
+   ec2:
+     state: absent
+     region: "{{ region }}"
+     instance_ids: "{{ ami_instance.tagged_instances.0.id }}"
+
+ - name: "{{ env }}-{{ server_role }} | Adding app-ami var file"
+   template:
+     src: "vars/templates/settings_build_ami.j2"
+     dest: "vars/fragments/{{ env }}/settings_build_ami.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Assembling config file"
+   assemble:
+     src: "vars/fragments/{{ env }}"
+     dest: "vars/{{ env }}_{{ server_role }}_settings.yml"

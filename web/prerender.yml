@@ -1,0 +1,65 @@
+ - hosts: aws
+   vars_files:
+    - vars/settings.yml
+    - env_vars/base.yml
+   tasks:
+    - name: Create prerender instance
+      ec2:
+        assign_public_ip: yes
+        region: "{{ region }}"
+        key_name: "{{ key_name }}"
+        group_id: "{{ group_id }}"
+        instance_type: t2.micro
+        vpc_subnet_id: "{{ subnets[0] }}"
+        image: "{{ ami_id }}"
+        wait: yes
+        wait_timeout: 300
+        exact_count: 1
+        count_tag:
+          role: prerender
+        instance_tags:
+          role: prerender
+      register: prerender
+ 
+    - name: Wait for SSH to start
+      wait_for: host={{ prerender.tagged_instances.0.public_ip }} port=22 delay=60 timeout=180 state=started
+
+    - name: add host to group
+      add_host: name={{ prerender.tagged_instances.0.public_ip }} groups=just_created
+    
+    - name: Register CNAME for prerender instance
+      route53:
+        command: create
+        zone: "{{ private_domain }}"
+        record: "prerender.{{ private_domain }}"
+       # hosted_zone_id: "Z27RHZ5N111GQK"
+        type: CNAME
+        ttl: 7200
+        value: "{{ prerender.tagged_instances.0.public_dns_name }}"
+        overwrite: yes
+        private_zone: true
+       
+ - hosts: just_created
+   become: yes
+   become_user: root
+   vars_files:
+     - vars/settings.yml
+   roles:
+     - common
+   tasks:
+     - name: Add node.js 5 repo
+       shell: "curl -sL https://deb.nodesource.com/setup_5.x | sudo -E bash -"
+     - name: Install Node.js
+       apt: name=nodejs update_cache=yes state=installed
+     - name: Install libfontconfig
+       apt: name=libfontconfig state=installed
+     - name: Clone git repo prerender.io
+       git: 
+         repo: https://github.com/prerender/prerender.git
+         dest: /prerender
+         force: yes
+         accept_hostkey: yes
+     - name: Install prerender.io
+       npm: 
+         path: "/prerender"
+         state: present

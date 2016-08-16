@@ -1,0 +1,47 @@
+- name: Install supervisor
+  easy_install: name=supervisor state=latest
+
+- name: Create Supervisor conf and log directories
+  file:
+    dest: "{{item}}"
+    owner: "root"
+    group: "root"
+    mode: 0755
+    state: directory
+  with_items:
+    - "/etc/supervisor"
+    - "/etc/supervisor/conf.d/"
+    - "/var/log/supervisor/"
+
+- name: Configure Supervisord
+  template:
+    src: supervisord.conf
+    dest: /etc/supervisor/supervisord.conf
+
+- name: Configure Supervisord app
+  template:
+    src: supervisor_config.j2
+    dest: "/etc/supervisor/conf.d/{{ application_name }}.conf"
+
+- name: Create Supervisord sock file
+  file:
+    dest: /var/run/supervisor.sock
+    owner: "root"
+    group: "root"
+    mode: 0755   
+    state: touch
+
+- name: Create Supervisord init script
+  template:
+    src: "init.Debian"
+    dest: "/etc/init.d/supervisor"
+    mode: 0755
+  with_first_found:
+    - files:
+        - "init.Debian"
+      paths:
+        - ../templates/
+
+- name: Ensure supervisord is running
+  become: yes
+  service: name=supervisor enabled=yes state=running

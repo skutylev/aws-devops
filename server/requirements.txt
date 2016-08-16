@@ -1,0 +1,9 @@
+boto
+awscli
+paramiko 
+PyYAML 
+Jinja2 
+httplib2
+six
+ansible
+python-keyczar 

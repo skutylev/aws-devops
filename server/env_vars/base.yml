@@ -1,0 +1,30 @@
+region: "eu-west-1"
+availability_zones:
+ - "eu-west-1a"
+ - "eu-west-1b"
+instance_type: "t2.small"
+
+vpc_id: ""
+subnets: ""
+
+project_name:
+application_name:
+git_repo:
+tag: master
+version: v1
+
+gunicorn_num_workers: 3
+gunicorn_max_requests: 0
+nginx_server_name: ""
+uwsgi_port: 9000
+flask_settings_file: settings
+flask_wsgi_module: wsgi
+flask_secret_key: ""
+ssl_certificate_id: "" #
+public_domain: ""
+private_domain: ""
+key_name: "{{ env }}-{{ server_role }}-key"
+asg_min_size: 2
+asg_max_size: 4
+asg_desired_capacity: 2
+lc_name: "{{ env }}-{{ server_role }}-{{ lc_suffix }}-lc"

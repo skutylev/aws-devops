@@ -1,0 +1,16 @@
+---
+- name: Install packages required by the Flask app inside virtualenv
+  become: yes
+  pip: "virtualenv={{ virtualenv_path }} requirements={{ requirements_file }} virtualenv_command=virtualenv state=present"
+
+- name: Ensure existence log dir
+  file: path={{ application_path }}/logs owner={{ gunicorn_user }} group={{ gunicorn_group }} mode=0774 state=directory
+
+- name: Configure application 
+  template: src=local_settings_product.j2 dest={{ application_path }}/local_settings.py mode=0664
+  when: env is defined and env == "product"
+
+- name: Configure application
+  template: src=local_settings_staging.j2 dest={{ application_path }}/local_settings.py mode=0664
+  when: env is defined and env == "staging"
+

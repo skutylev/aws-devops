@@ -1,0 +1,21 @@
+ - name: "{{ env }}-{{ server_role }} | Load variables"
+   include_vars: "{{ item }}"
+   with_first_found:
+     - "vars/{{ env }}_{{ server_role }}_settings.yml"
+     - "vars/settings.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Finding base original AMI image"
+   ec2_ami_find:
+     ami_id: ami-f95ef58a
+   register: ami
+ - debug: var=ami
+
+ - name: "{{ env }}-{{ server_role }} | Adding VPC id and subnets in var file"
+   template:
+     src: "vars/templates/settings_infr_find_ami.j2"
+     dest: "vars/fragments/{{ env }}/settings_infr_find_ami.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Assembling config file"
+   assemble:
+     src: "vars/fragments/{{ env }}"
+     dest: "vars/{{ env }}_{{ server_role }}_settings.yml"

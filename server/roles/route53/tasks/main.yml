@@ -1,0 +1,31 @@
+ - name: "{{ env }}-{{ server_role }} | Load variables"
+   include_vars: "{{ item }}"
+   with_first_found:
+     - "vars/{{ env }}_{{ server_role }}_settings.yml"
+     - "vars/settings.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Create {{ private_domain }} DNS zone"
+   route53_zone:
+     vpc_id: "{{ vpc_id }}"
+     vpc_region: "{{ region }}"
+     zone: "{{ private_domain }}"
+     state: present
+   register: zone_private
+ - debug: var=zone_private
+
+ - name: "{{ env }}-{{ server_role }} | Create {{ public_domain }} DNS zone"
+   route53_zone:
+     zone: "{{ public_domain }}"
+     state: present
+   register: zone_public
+ - debug: var=zone_public
+
+ - name: "{{ env }}-{{ server_role }} | Adding Route53 var file"
+   template:
+     src: "vars/templates/settings_infr_route53.j2"
+     dest: "vars/fragments/{{ env }}/settings_infr_route53.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Assembling config file"
+   assemble:
+     src: "vars/fragments/{{ env }}"
+     dest: "vars/{{ env }}_{{ server_role }}_settings.yml"

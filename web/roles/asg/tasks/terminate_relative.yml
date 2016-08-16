@@ -1,0 +1,17 @@
+ - name: Retrieve current Auto Scaling Group properties
+   command: "aws --region {{ region }} autoscaling describe-auto-scaling-groups --auto-scaling-group-names {{ relative }}"
+   register: facts
+
+ - name: "{{ env }}-{{ server_role }} | Terminating relative ASG"
+   ec2_asg:
+     name: "{{ relative }}"
+     state: absent
+     region: "{{ region }}"
+   register: result
+
+ - name: "{{ env }}-{{ server_role }} | Terminate relative Launch config"
+   ec2_lc:
+     name: "{{ (facts.stdout | from_json).AutoScalingGroups[0].LaunchConfigurationName }}"
+     region: "{{ region }}"
+     state: absent
+

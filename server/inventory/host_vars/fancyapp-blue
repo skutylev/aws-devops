@@ -1,0 +1,7 @@
+#relative: fancyapp-violet
+#asg_group_name: fancyapp-blue
+#lc_name: fancyapp-blue-{{ lc_suffix }}
+
+relative: "{{ env }}-{{ server_role }}-violet"
+asg_group_name: "{{ env }}-{{ server_role }}-blue"
+lc_name: "{{ env }}-{{ server_role }}-{{ lc_suffix }}-lc"

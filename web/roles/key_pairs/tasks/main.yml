@@ -1,0 +1,33 @@
+ - name: "{{ env }}-{{ server_role }} | Load variables"
+   include_vars: "{{ item }}"  
+   with_first_found:
+     - "vars/{{ env }}_{{ server_role }}_settings.yml"
+     - "vars/settings.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Creating key pair"
+   ec2_key:
+     name: "{{ env }}-{{server_role }}-key"
+     state: present
+     key_material: "{{ item }}"
+   with_file: "~/.ssh/{{ env }}-{{server_role }}-key.pub"
+   register: key
+
+# - name: "{{ env }}-{{ server_role }} | Adding private key in ~/.ssh/{{ key.key.name }}"
+#   blockinfile:
+#     marker: ' '
+#     dest: "~/.ssh/{{ key.key.name }}"
+#     block: |
+#       {{ key.key.private_key }}
+#     create: true
+#     mode: 0600
+#   when: "{{ key.changed }} is defined and {{ key.changed }}|bool == True"
+
+# - name: "{{ env }}-{{ server_role }} | Adding key pair name in var file"
+#   template: 
+#     src: "vars/templates/settings_infr_key_pair.j2"
+#     dest: "vars/fragments/{{ env }}/settings_infr_key_pair.yml"
+
+# - name: "{{ env }}-{{ server_role }} | Assembling config file"
+#   assemble:
+#     src: "vars/fragments/{{ env }}"
+#     dest: "vars/{{ env }}_{{ server_role }}_settings.yml"

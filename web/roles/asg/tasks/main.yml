@@ -1,0 +1,72 @@
+ - name: "{{ env }}-{{ server_role }} | Load variables"
+   include_vars: "{{ item }}"
+   with_first_found:
+     - "vars/{{ env }}_{{ server_role }}_settings.yml"
+     - "vars/settings.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Creating launch config"
+   ec2_lc:
+     name: "{{ lc_name }}"
+     image_id: "{{ app_image_id }}"
+     key_name: "{{ key_name }}"
+     region: "{{ region }}"
+     security_groups: "{{ group_id }}"
+     instance_type: "t2.micro"
+     assign_public_ip: yes
+   tags: launch_config
+
+ - name: "{{ env }}-{{ server_role }} | Creating Autoscaling group"
+   ec2_asg:
+     name: "{{ asg_group_name }}"
+     health_check_period: 60
+     load_balancers: "{{ env }}-{{ server_role }}-lb"
+     health_check_type: ELB
+     availability_zones: "{{ availability_zones | join(',')}}"
+     launch_config_name: "{{ lc_name }}"
+     min_size: "{{ asg_min_size }}"
+     max_size: "{{ asg_max_size }}"
+     desired_capacity: "{{ asg_desired_capacity }}"
+     region: "{{ region }}"
+     vpc_zone_identifier: "{{ subnets | join(',') }}"
+     replace_all_instances: yes
+     tags:
+       - Name: "{{ env }}-{{ server_role }}"
+       - propagate_at_launch: true
+       - Env: "{{ env }}"
+       - Role: "{{ server_role }}"
+   tags: autoscale_group
+   register: asg
+   when: env is defined and env == "product"
+
+ - name: "{{ env }}-{{ server_role }} | Creating Autoscaling group"
+   ec2_asg:
+     name: "{{ asg_group_name }}"
+     health_check_period: 60
+     load_balancers: "{{ env }}-{{ server_role }}-lb"
+     health_check_type: ELB
+     availability_zones: "{{ availability_zones | join(',')}}"
+     launch_config_name: "{{ lc_name }}"
+     min_size: 1
+     max_size: 1
+     desired_capacity: 1
+     region: "{{ region }}"
+     vpc_zone_identifier: "{{ subnets | join(',') }}"
+     replace_all_instances: yes
+     tags:
+       - Name: "{{ env }}-{{ server_role }}"
+       - propagate_at_launch: true
+       - Env: "{{ env }}"
+       - Role: "{{ server_role }}"
+   tags: autoscale_group
+   register: asg
+   when: env is defined and env == "staging"
+
+ - name: "{{ env }}-{{ server_role }} | Adding ASG in var file"
+   template:
+     src: "vars/templates/settings_infr_asg.j2"
+     dest: "vars/fragments/{{ env }}/settings_infr_asg.yml"
+
+ - name: "{{ env }}-{{ server_role }} | Assembling config file"
+   assemble:
+     src: "vars/fragments/{{ env }}"
+     dest: "vars/{{ env }}_{{ server_role }}_settings.yml"

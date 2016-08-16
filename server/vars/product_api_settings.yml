@@ -1,0 +1,12 @@
+app_image_id: ""
+lc_suffix: ""
+
+base_ami_id: ""
+base_ami_name: ""
+elb_dns_name: ""
+elb_hosted_zone_id: ""
+public_zone_id: ""
+public_zone_name: ""
+private_zone_id: ""
+private_zone_name: ""
+group_id: ""
